@@ -11,13 +11,7 @@ url1 = 'http://zfjw.gdou.edu.cn:8016/'
 url2 = 'http://210.38.137.126:8016/'
 url3 = 'http://210.38.137.125:8016/'
 url4 = 'http://210.38.137.124:8016/'
-viewstate1 = ''
-viewstate2 = 'dDwxNTMxMDk5Mzc0Ozs+OBE730NQqeUlEYO76T3Qls4CiUo='
-viewstate3 = ''
-viewstate4 = ''
-
 url = url2
-viewstate = viewstate2
 
 cookie = http.cookiejar.CookieJar()
 opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookie))
@@ -45,12 +39,11 @@ while True:
     im.show()
     params['txtSecretCode'] = input('请输入验证码：')
     im.close()
-    # response = urllib.request.urlopen(url)
-    # html = response.read().decode('gb2312')
-    # viewstate = re.search('<input type="hidden" name="__VIEWSTATE" value="(.+?)"', html)
-    # print(viewstate)
-    # params['__VIEWSTATE'] = viewstate.group(1)
-    params['__VIEWSTATE'] = viewstate
+    response = urllib.request.urlopen(url + 'default2.aspx')
+    html = response.read().decode('gb2312')
+    viewstate = re.search('<input type="hidden" name="__VIEWSTATE" value="(.*?)" />', html)
+    params['__VIEWSTATE'] = viewstate.group(1)
+    print(params['__VIEWSTATE'])
 
     loginurl = url + 'default2.aspx'
     data = urllib.parse.urlencode(params).encode('gb2312')
@@ -62,6 +55,7 @@ while True:
         name = name[:-2]
         break
 print(name)
+# 成绩查询
 sub_url = ''.join([url, 'xscj_gc.aspx', '?xh=', username,
                    '&xm=', urllib.parse.quote(name), '&gnmkdm=N121613'])
 params = {
@@ -78,34 +72,55 @@ req.add_header('User-Agent',
                'Chrome/63.0.3239.132 Safari/537.36')
 response = opener.open(req)
 html = response.read().decode('gb2312')
-viewstate = re.search('<input type="hidden" name="__VIEWSTATE" value="(.+?)"', html)
-print(viewstate.group(1))
+viewstate = re.search('<input type="hidden" name="__VIEWSTATE" value="(.*?)"', html)
 params['__VIEWSTATE'] = viewstate.group(1)
 req = urllib.request.Request(sub_url, urllib.parse.urlencode(params).encode('gb2312'))
 req.add_header('Referer', url + 'default2.aspx')
 req.add_header('Origin', url)
 response = opener.open(req)
+# 筛选table内容
 soup = BeautifulSoup(response.read().decode('gb2312'), 'html.parser')
 html = soup.find('table', class_='datelist')
 
-print('你的所有成绩如下：')
 outColumn = [1, 2, 3, 4, 6, 7, 8]
 flag = True
-
+itemCounter = 0
+grade = {'total': 0.0}
+saveYears = ''
+print('你的所有成绩如下：')
 for each in html:
     columnCounter = 0
     column = []
-    if (type(each) == bs4.element.NavigableString):
+    if type(each) == bs4.element.NavigableString:
         pass
     else:
         for item in each.contents:
-            if (item != '\n'):
+            if item != '\n':
+                if (columnCounter == 0) & (flag is False):
+                    years = str(item.contents[0]).strip()
+                    if years not in grade.keys():
+                        if saveYears != '':
+                            grade[saveYears] = grade[saveYears] / yearsCounter
+                        grade[years] = 0.0
+                        yearsCounter = 1
+                        saveYears = years
+                    else:
+                        yearsCounter += 1
                 if columnCounter in outColumn:
-                    column.append(str(item.contents[0]).strip())
+                    data = str(item.contents[0]).strip()
+                    column.append(data)
+                    if (columnCounter == 7) & (flag is False):
+                        grade[years] += float(data)
+                        grade['total'] += float(data)
+                        itemCounter += 1
                 columnCounter += 1
         if flag:
+            # 第一行作为表头
             table = PrettyTable(column)
             flag = False
         else:
             table.add_row(column)
+grade[saveYears] = grade[saveYears] / yearsCounter
+grade['total'] = grade['total'] / itemCounter
 print(table)
+print(grade)
