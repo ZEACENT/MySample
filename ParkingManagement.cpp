@@ -1,8 +1,6 @@
 #define _CRT_SECURE_NO_WARNINGS
-
 #include <stdio.h>
 #include <time.h>
-
 using namespace std;
 
 #define MAXSIZE 4
@@ -23,7 +21,6 @@ typedef struct {
 	int front;
 	int rear;
 } SeqQueue;
-
 
 void InitStack(SeqStack *S) {
 	S->top = -1;
@@ -77,7 +74,6 @@ int DeQueue(SeqQueue *Q, ElemType *e) {
 	Q->front = (Q->front + 1) % MAXSIZE;
 	return TRUE;
 }
-
 
 int DriveOut(SeqStack *S, ElemType e, SeqStack *St) {
 	ElemType S2S;
