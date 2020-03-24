@@ -6,6 +6,7 @@ import bs4
 from bs4 import BeautifulSoup
 from prettytable import PrettyTable
 from PIL import Image
+import pytesseract
 
 url1 = 'http://zfjw.gdou.edu.cn:8016/'
 url2 = 'http://210.38.137.126:8016/'
@@ -32,13 +33,34 @@ while True:
         'hidPdrs': '',
         'hidsc': ''
     }
+
     res = opener.open(url + 'CheckCode.aspx').read()
     with open(r'./code.jpg', 'wb') as file:
         file.write(res)
     im = Image.open(r'./code.jpg')
+    im = im.convert('L')
+    threshold = 160  # 设定二值化阈值
+    table = []
+    for i in range(256):
+        if i < threshold:
+            table.append(0)
+        else:
+            table.append(1)
+    im = im.point(table, '1')
+    im.save('./code_t.jpg')
+    im.close
+    im = Image.open(r'./code_t.jpg')
+    # err:tesseract is not installed or it's not in your path
+    # brew install tesseract
+    captcha = pytesseract.image_to_string(im)
+    captcha = re.sub(r'\W+', '', captcha).strip()
+    print('验证码:', captcha)
     im.show()
+    im.close
+
     params['txtSecretCode'] = input('请输入验证码：')
-    im.close()
+    goalNum = float(input('目标绩点：'))
+    badNum = 0
     response = urllib.request.urlopen(url + 'default2.aspx')
     html = response.read().decode('gb2312')
     viewstate = re.search('<input type="hidden" name="__VIEWSTATE" value="(.*?)" />', html)
@@ -54,6 +76,7 @@ while True:
         name = tmpname.group(1)
         name = name[:-2]
         break
+
 print(name)
 # 成绩查询
 sub_url = ''.join([url, 'xscj_gc.aspx', '?xh=', username,
@@ -113,6 +136,8 @@ for each in html:
                         grade[years] += float(data)
                         grade['total'] += float(data)
                         itemCounter += 1
+                        if float(data) <= goalNum:
+                            badNum += 1
                 columnCounter += 1
         if flag:
             # 第一行作为表头
@@ -124,3 +149,4 @@ grade[saveYears] = grade[saveYears] / yearsCounter
 grade['total'] = grade['total'] / itemCounter
 print(table)
 print(grade)
+print(badNum)
