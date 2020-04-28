@@ -17,10 +17,8 @@ url = url2
 cookie = http.cookiejar.CookieJar()
 opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookie))
 
-# username = input("输入用户名: ")
-# password = input("输入密码 ")
-username = '201711672114'
-password = 'h19981027'
+username = input("输入用户名: ")
+password = input("输入密码 ")
 
 while True:
     params = {
